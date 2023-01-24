@@ -2,19 +2,24 @@ const express = require("express");
 const redis = require("redis");
 
 const PORT = 8080;
-const app = express();
 
 const client = redis.createClient({
-  host: "redis-server",
-  por: 6379,
+  socket: {
+    host: "redis-server",
+    port: 6379,
+  },
 });
+const app = express();
 
-client.set("number", 0);
-app.get("/", (req, res) => {
-  client("number", (err, number) => {
-    client.set("number", Number(number) + 1);
-    res.send("count:" + number);
-  });
+app.get("/", async (req, res) => {
+  await client.connect();
+  let number = await client.get("number");
+  if (number === null) {
+    number = 0;
+  }
+  res.send("count:" + number);
+  await client.set("number", Number(number) + 1);
+  await client.disconnect();
 });
 
 app.listen(PORT, () => {
